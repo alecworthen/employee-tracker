@@ -1,11 +1,11 @@
-const inquirer = require('inquirer');
-const mysql = require('mysql2');
+import inquirer from "inquirer";
+import mysql from "mysql2";
 
 const connection = mysql.createConnection({
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: '',
+    password: 'Ronin',
     database: 'employee_db',
 });
 
@@ -60,7 +60,7 @@ function start() {
             modifyEmployeeRole();
             break;
           case 'Exit':
-            endConnection();
+            connection.end();
             console.log('See ya!');
             break;
         }
@@ -75,7 +75,7 @@ function displayAllDepartments() {
     });
 }
 function displayAllRoles() {
-    const query = 'SELECT roles.title, roles.id, departments.department_name, roles.salary from roles join departments on roles.department_id = departments.id';
+    const query = 'SELECT roles.title, roles.id, departments.departments_name, roles.salary from roles join departments on roles.department_id = departments.id';
     connection.query(query, (err, res) => {
         if (err) throw err;
         console.table(res);
@@ -84,7 +84,7 @@ function displayAllRoles() {
 }
 function displayAllEmployees() {
   const query =  `
-  SELECT e.id, e.first_name, e.last_name, r.title, d.department_name, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+  SELECT e.id, e.first_name, e.last_name, r.title, d.departments_name, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
   FROM employee e
   LEFT JOIN roles r ON e.role_id = r.id
   LEFT JOIN departments d ON r.department_id = d.id
@@ -105,7 +105,7 @@ function createDepartment() {
     })
     .then((answer) => {
       console.log(answer.name);
-      const query = `INSERT INTO departments (department_name) VALUES ('${answer.name}')`;
+      const query = `INSERT INTO departments (departments_name) VALUES ('${answer.name}')`;
       connection.query(query, (err, res) => {
         if (err) throw err;
         console.log(`Department ${answer.name} added to database.`);
@@ -241,7 +241,7 @@ function assignManager() {
           {
             type: 'list',
             name: 'department',
-            message: 'Please selct employee to add the manager to:',
+            message: 'Please select an employee to add the manager to:',
             choices: resEmployees.map(
               (employee) => `${employee.first_name} ${employee.last_name}`
             ),
@@ -256,22 +256,36 @@ function assignManager() {
           },
         ])
         .then((answers) => {
+          console.log('Answers:', answers);
+
           const department = resDepartments.find(
             (department) =>
-              department.department_name === answers.department
+              department.departments_name === answers.department
           );
           const employee = resEmployees.find(
-            (employee) => `${employee.first_name} ${employee.last_name}` === answers.employee 
+            (employee) => `${employee.first_name} ${employee.last_name}` === answers.department
           );
           const manager = resEmployees.find(
             (employee) => `${employee.first_name} ${employee.last_name}` === answers.manager
           );
-          const query = 'UPDATE employee SET manager_id = ? WHERE id = ? AND role_id IN (SELECT id FROM roles WHERE department_id = ?';
+
+          console.log('Department:', department);
+          console.log('Employee:', employee);
+          console.log('Manager:', manager);
+
+          if (!department || !employee || !manager) {
+            console.error('Error: Department, employee, or manager not found.');
+            start();
+            return;
+          }
+
+          const query = 'UPDATE employee SET manager_id = ? WHERE id = ? AND role_id IN (SELECT id FROM roles WHERE department_id = ?)';
+
           connection.query(query, 
             [manager.id, employee.id, department.id],
             (err, res) => {
-              if (err) throw err
-              console.log(`${employee.first_name} ${employee.last_name} added to manager ${manager.first_name} ${manager.last_name} in ${department.department_name} department.`);
+              if (err) throw err;
+              console.log(`${employee.first_name} ${employee.last_name} added to manager ${manager.first_name} ${manager.last_name} in ${department.departments_name} department.`);
               start();
             }
           );
@@ -279,49 +293,53 @@ function assignManager() {
     });
   });
 }
+
 function modifyEmployeeRole() {
   const queryEmployees = 'SELECT employee_id, employee.first_name, employee.last_name, rolestitle FROM employee LEFT JOIN roles ON employee.role_id = roles.id';
   const queryRoles = 'SELECT * FROM roles';
   connection.query(queryEmployees, (err, resEmployees) => {
     if (err) throw err;
-    inquirer
-      .prompt([
-        {
-          type: 'list',
-          name: 'employee',
-          message: 'Please the select the employee to update:',
-          choices: resEmployees.map(
-            (employee) => `${employee.first_name} ${employee.last_name}` 
-          ),
-        },
-        {
-          type: 'list',
-          name: 'role',
-          message: 'Please select the new role:',
-          choices: resRoles.map((role) => role.title),
-        },
-      ])
-      .then((answers) => {
-        const employee = resEmployees.find(
-          (employee) => `${employee.first_name} ${employee.last_name}` === answers.employee
-        );
-        const role = resRoles.find(
-          (role) => role.title === answers.role
-        );
-        const query = 'UPDATE employee SET role_id = ? WHERE id = ?';
-        connection.query(
-          query,
-          [role.id, employee.id],
-          (err, res) => {
-            if (err) throw err;
-            console.log(`${employee.first_name} ${employee.last_name} role has been updated to ${role.title} in database.`);
-            start();
-          }
-        );
-      });
+    connection.query(queryRoles, (err, resRoles) => {
+      if (err) throw err;
+      inquirer
+        .prompt([
+          {
+            type: 'list',
+            name: 'employee',
+            message: 'Please select the employee to update:',
+            choices: resEmployees.map(
+              (employee) => `${employee.first_name} ${employee.last_name}`
+            ),
+          },
+          {
+            type: 'list',
+            name: 'role',
+            message: 'Please select the new role:',
+            choices: resRoles.map((role) => role.title),
+          },
+        ])
+        .then((answers) => {
+          const employee = resEmployees.find(
+            (employee) => `${employee.first_name} ${employee.last_name}` === answers.employee
+          );
+          const role = resRoles.find(
+            (role) => role.title === answers.role
+          );
+          const query = 'UPDATE employee SET role_id = ? WHERE id = ?';
+          connection.query(
+            query,
+            [role.id, employee.id],
+            (err, res) => {
+              if (err) throw err;
+              console.log(`${employee.first_name} ${employee.last_name} role has been updated to ${role.title} in the database.`);
+              start();
+            }
+          );
+        });
+    });
   });
 }
 
-process.on('exit', () => {
+process.on('Quit', () => {
   connection.end();
 });

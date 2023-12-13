@@ -1,4 +1,4 @@
-INSERT INTO departments (department_name)
+INSERT INTO departments (departments_name)
 VALUES
 ('Management Team'),
 ('Public Relations'),
