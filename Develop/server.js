@@ -3,10 +3,10 @@ const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
     host: 'localhost',
-    port: 3301,
+    port: 3306,
     user: 'root',
     password: '',
-    database: '',
+    database: 'employee_db',
 });
 
 connection.connect((err) => {
@@ -15,7 +15,7 @@ connection.connect((err) => {
     start();
 })
 
-function initiateAction() {
+function start() {
     inquirer
       .prompt({
         type: 'list',
@@ -146,7 +146,7 @@ function createRole() {
           {
             title: answers.title,
             salary: answers.salary,
-            department_id: department,
+            department_id: department.id,
           },
           (err, res) => {
             if (err) throw err;
@@ -204,11 +204,11 @@ function createEmployee() {
               ],
             },
           ])
-          .then((answer) => {
+          .then((answers) => {
             const sql = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)';
             const values = [
               answers.firstName,
-              answers,lastName,
+              answers.lastName,
               answers.roleId,
               answers.managerId,
             ];
@@ -229,12 +229,12 @@ function createEmployee() {
   })
 }
 function assignManager() {
-  const queryDepartments = 'Select * FROM departments';
+  const queryDepartments = 'SELECT * FROM departments';
   const queryEmployees = 'SELECT * FROM employee';
 
   connection.query(queryDepartments, (err, resDepartments) => {
     if (err) throw err;
-    connection.query(queryEmployees, (err, resEmployess) => {
+    connection.query(queryEmployees, (err, resEmployees) => {
       if (err) throw err;
       inquirer
         .prompt([
@@ -263,7 +263,7 @@ function assignManager() {
           const employee = resEmployees.find(
             (employee) => `${employee.first_name} ${employee.last_name}` === answers.employee 
           );
-          const manager = resEmployess.find(
+          const manager = resEmployees.find(
             (employee) => `${employee.first_name} ${employee.last_name}` === answers.manager
           );
           const query = 'UPDATE employee SET manager_id = ? WHERE id = ? AND role_id IN (SELECT id FROM roles WHERE department_id = ?';
