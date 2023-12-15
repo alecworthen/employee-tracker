@@ -1,3 +1,21 @@
+# Employee Tracker
+
+## Description 
+
+Employee tracker for use to add new employees, managers, and positions.
+
+## Table of Contents:
+- [Overview](#Overview)
+- [Challenge](#Challenge)
+- [Usage](#Usage)
+- [Questions](#Questions)
+
+# Overview
+
+## Challenge
+
+Create a employee tracker to keep better track of employees and positions within a company.
+
 ## User Story
 
 ```md
@@ -27,3 +45,15 @@ THEN I am prompted to enter the employee’s first name, last name, role, and ma
 WHEN I choose to update an employee role
 THEN I am prompted to select an employee to update and their new role and this information is updated in the database 
 ```
+## Usage
+
+1. Open the terminal and type "node.server.js"
+2. When running the application, use the arrow keys to navigate it.
+3. Press enter when hovering a specific query and then follow the instructions to completion.
+4. When finished with the application, navigate to "Exit" to quit application.
+ 
+
+## Questions
+If you have any questions, feel free to contact me:
+- GitHub: [alecworthen](https://github.com/alecworthen)
+- Email: alecworthen@gmail.com
